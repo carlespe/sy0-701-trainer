@@ -43,7 +43,9 @@ NOTES
     answers are inside index.html.
   - Android: same steps, but in Chrome tap the menu and choose
     "Install app" or "Add to Home screen".
-  - To update later, replace the files and change CACHE = 'sy0701-v1'
-    in sw.js to 'sy0701-v2' so phones pick up the new version.
+  - Updating: just replace every file, including sw.js. Its cache name
+    is derived from the app's contents, so a new build automatically
+    invalidates the old one on every device. Open the app once with a
+    connection, then reopen it to see the new version.
 
 Developed by Espii

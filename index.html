@@ -14,7 +14,7 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#0A0C0F; --panel:#10141A; --panel2:#161C24; --raise:#1B222B;
@@ -41,10 +41,85 @@ button{font:inherit;color:inherit;background:none;border:none;cursor:pointer}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
 .hide{display:none !important}
 
+/* ---------- boot sequence ---------- */
+#boot{position:fixed;inset:0;z-index:200;background:var(--bg);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom))}
+#boot.done{opacity:0;pointer-events:none;transition:opacity .34s ease}
+#bootBg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;
+  -webkit-mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 86%,transparent 100%);
+  mask-image:linear-gradient(180deg,transparent 0,#000 22%,#000 86%,transparent 100%)}
+.boot-frame{position:relative;z-index:1;width:100%;max-width:480px;padding:34px 32px;overflow:hidden}
+.boot-frame .c{position:absolute;width:13px;height:13px;border:1px solid var(--line2);
+  opacity:0;animation:cornerIn .45s ease forwards}
+.c.tl{left:0;top:0;border-right:0;border-bottom:0}
+.c.tr{right:0;top:0;border-left:0;border-bottom:0;animation-delay:.06s}
+.c.bl{left:0;bottom:0;border-right:0;border-top:0;animation-delay:.12s}
+.c.br{right:0;bottom:0;border-left:0;border-top:0;animation-delay:.18s}
+@keyframes cornerIn{from{opacity:0;transform:scale(.45)}to{opacity:1;transform:none}}
+.boot-scan{position:absolute;top:0;bottom:0;width:1px;background:var(--accent);
+  left:0;opacity:0;animation:scan 1.6s .3s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes scan{0%{left:0;opacity:0}14%{opacity:.45}100%{left:100%;opacity:0}}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+.bt-mark{display:flex;align-items:center;gap:13px;margin-bottom:18px}
+.bt-sq{width:11px;height:11px;background:var(--accent);flex:none;opacity:0;
+  animation:sqIn .4s .12s ease forwards}
+@keyframes sqIn{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+.bt-name{display:flex;font-family:var(--mono);font-size:clamp(17px,4.8vw,30px);
+  font-weight:700;letter-spacing:.12em;color:var(--ink);line-height:1}
+.bt-name span{display:inline-block;opacity:0;transform:translateY(6px);
+  animation:ltrIn .42s cubic-bezier(.2,.7,.3,1) forwards}
+@keyframes ltrIn{to{opacity:1;transform:none}}
+
+.bt-rule{height:1px;background:var(--line);transform:scaleX(0);transform-origin:left;
+  animation:ruleIn .55s .46s cubic-bezier(.3,.8,.2,1) forwards}
+.bt-rule.two{margin-top:24px;animation-delay:1.24s}
+@keyframes ruleIn{to{transform:scaleX(1)}}
+.bt-sub{font-family:var(--mono);font-size:9px;letter-spacing:.26em;color:var(--ink3);
+  margin-top:13px;opacity:0;animation:fadeUp .45s .62s ease forwards}
+.bt-sub b{color:var(--ink2);font-weight:400}
+@media(max-width:560px){.bt-sub{font-size:8px;letter-spacing:.15em}}
+
+.bt-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:27px}
+.bt-stat{opacity:0;transform:translateY(5px);animation:fadeUp .4s ease forwards}
+.bt-stat b{display:block;font-family:var(--mono);font-size:clamp(21px,5.4vw,28px);
+  font-weight:500;color:var(--ink);line-height:1;font-variant-numeric:tabular-nums}
+.bt-stat span{display:block;font-family:var(--mono);font-size:8.5px;letter-spacing:.17em;
+  color:var(--ink3);margin-top:9px;white-space:nowrap}
+@keyframes fadeUp{to{opacity:1;transform:none}}
+@media(max-width:560px){.bt-stats{grid-template-columns:repeat(2,1fr);gap:22px 14px}}
+
+.boot-prog{height:1px;background:var(--line);margin-top:17px;overflow:hidden}
+.boot-prog i{display:block;height:100%;width:0;background:var(--accent);
+  animation:progIn 1.35s .5s cubic-bezier(.25,.6,.3,1) forwards}
+@keyframes progIn{to{width:100%}}
+
+.bt-foot{display:flex;align-items:center;justify-content:space-between;
+  gap:10px 16px;flex-wrap:wrap;margin-top:16px}
+.boot-prompt{font-family:var(--mono);font-size:9px;letter-spacing:.22em;color:var(--ink2);
+  opacity:0;transition:opacity .4s ease}
+.boot-prompt.show{opacity:1}
+.cur{display:inline-block;width:6px;height:9px;background:var(--accent);
+  margin-left:9px;vertical-align:0;animation:caret 1.05s steps(1) infinite}
+@keyframes caret{0%,49%{opacity:1}50%,100%{opacity:0}}
+.bt-int{font-family:var(--mono);font-size:8.5px;letter-spacing:.17em;color:var(--ok);
+  margin-left:auto;opacity:0;transition:opacity .4s ease}
+.bt-int.show{opacity:1}
+.bt-int.bad{color:var(--bad)}
+
+@media(prefers-reduced-motion:reduce){
+  .boot-prompt,.bt-int{opacity:1}
+  #boot .c,.boot-scan,.bt-sq,.bt-name span,.bt-rule,.bt-sub,.bt-stat,.boot-prog i,.cur{animation:none}
+  .bt-name span,.bt-sub,.bt-stat{opacity:1;transform:none}
+  .bt-rule{transform:scaleX(1)}
+}
+
 /* ---------- chrome ---------- */
 .top{
   position:sticky;top:0;z-index:40;background:rgba(10,12,15,.92);
   backdrop-filter:blur(12px);border-bottom:1px solid var(--line);
+  padding-top:env(safe-area-inset-top);
 }
 .top-in{max-width:1180px;margin:0 auto;padding:0 22px;height:54px;
   display:flex;align-items:center;gap:18px}
@@ -269,10 +344,10 @@ pre.code{background:var(--panel);border:1px solid var(--line);border-left:2px so
 .legend i{display:inline-block;width:9px;height:9px;border:1px solid var(--line2);margin-right:6px;vertical-align:-1px}
 
 @media(max-width:560px){
-  .top-in{padding:0 14px;gap:10px}
+  .top-in{padding:0 14px;gap:8px;height:52px}
   .brand small{display:none}
   .brand{font-size:14px}
-  .tbtn{padding:6px 9px;font-size:12px}
+  .tbtn{padding:9px 11px;font-size:12px;min-height:36px;display:inline-flex;align-items:center}
   .wrap{padding:0 14px}
   .qwrap{padding:22px 14px 150px}
   .res{padding:30px 14px 90px}
@@ -370,6 +445,25 @@ pre.code{background:var(--panel);border:1px solid var(--line);border-left:2px so
 </style>
 </head>
 <body>
+
+<div id="boot" role="button" tabindex="0" aria-label="Press any key to continue">
+  <canvas id="bootBg" aria-hidden="true"></canvas>
+  <div class="boot-frame">
+    <i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i>
+    <i class="boot-scan"></i>
+    <div class="bt-mark"><span class="bt-sq"></span><span class="bt-name" id="bootName"></span></div>
+    <div class="bt-rule"></div>
+    <div class="bt-sub">DEVELOPED BY <b>ESPII</b> &middot; COMPTIA SECURITY+</div>
+    <div class="bt-stats" id="bootStats"></div>
+    <div class="bt-rule two"></div>
+    <div class="boot-prog"><i></i></div>
+    <div class="bt-foot">
+      <span class="boot-prompt" id="bootPrompt"><span>PRESS ANY KEY TO CONTINUE</span><i class="cur"></i></span>
+      <span class="bt-int" id="bootInt"></span>
+    </div>
+    <span class="sr">Developed by Espii</span>
+  </div>
+</div>
 
 <header class="top">
   <div class="top-in">
@@ -1271,6 +1365,255 @@ document.addEventListener('keydown', e => {
 });
 
 renderSetup();
+
+/* ============ boot sequence ============ */
+(function boot() {
+  const b = document.getElementById('boot');
+  if (!b) return;
+  const prompt = document.getElementById('bootPrompt');
+  const intEl = document.getElementById('bootInt');
+
+  // ---- real figures, measured from the payload ----
+  const objs = Object.keys(OBJNAME).length;
+  const inter = QS.filter(q => q.interactive).length;
+  let bad = 0;
+  QS.forEach(q => {
+    if (isMC(q)) {
+      if (!q.correct.length || !q.correct.every(c => q.options.some(o => o.letter === c))) bad++;
+    } else if (!q.interactive) bad++;
+  });
+
+  const reduced = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ---- title, one letter at a time ----
+  document.getElementById('bootName').innerHTML = 'SY0-701 TRAINER'.split('')
+    .map((ch, i) => `<span style="animation-delay:${(0.26 + i * 0.032).toFixed(3)}s">${ch === ' ' ? '&nbsp;' : ch}</span>`).join('');
+
+  // ---- stat readout ----
+  const stats = [
+    [QS.length, 'QUESTIONS'],
+    [objs, 'OBJECTIVES'],
+    [inter, 'PERF-BASED'],
+    [DOMAINS.length, 'DOMAINS'],
+  ];
+  const host = document.getElementById('bootStats');
+  host.innerHTML = stats.map((s, i) =>
+    `<div class="bt-stat" style="animation-delay:${(0.78 + i * 0.07).toFixed(2)}s"><b>0</b><span>${s[1]}</span></div>`
+  ).join('');
+
+  const countTo = (el, to, dur, delay) => setTimeout(() => {
+    if (!el.isConnected) return;
+    const t0 = performance.now();
+    const step = () => {
+      if (!el.isConnected) return;
+      const p = Math.min(1, (performance.now() - t0) / dur);
+      const e = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(to * e).toLocaleString();
+      if (p < 1) requestAnimationFrame(step); else el.textContent = to.toLocaleString();
+    };
+    step();
+  }, delay);
+
+  const finishInt = () => {
+    intEl.textContent = bad ? bad + ' ERRORS' : 'VERIFIED';
+    intEl.classList.toggle('bad', !!bad);
+    intEl.classList.add('show');
+  };
+
+  if (reduced) {
+    Array.from(host.querySelectorAll('b')).forEach((el, i) => el.textContent = stats[i][0].toLocaleString());
+    prompt.classList.add('show');
+    finishInt();
+  } else {
+    Array.from(host.querySelectorAll('b')).forEach((el, i) =>
+      countTo(el, stats[i][0], 620, (0.82 + i * 0.07) * 1000));
+    setTimeout(() => { if (prompt.isConnected) prompt.classList.add('show'); }, 1850);
+    setTimeout(() => { if (intEl.isConnected) finishInt(); }, 1950);
+  }
+
+  // ---- background: wireframe relief, flown over slowly ----
+  (function terrain() {
+    const cv = document.getElementById('bootBg');
+    if (!cv || !cv.getContext) return;
+    const ctx = cv.getContext('2d');
+
+    let COLS = 72, ROWS = 52, COL_W = 0.48;
+    const DZ = 0.58, Z_NEAR = 3.5, CAM = 4.8, SPEED = 0.55;
+    let w = 0, h = 0, horizon = 0, foc = 0;
+
+    // value noise -> fractal + ridged fields
+    const hs = (i, j) => {
+      // Math.imul keeps these exact; plain * overflows float64 and flattens the field.
+      let n = (Math.imul(i, 1619) + Math.imul(j, 31337)) | 0;
+      n = (n << 13) ^ n;
+      n = (Math.imul(n, (Math.imul(Math.imul(n, n), 15731) + 789221) | 0) + 1376312589) | 0;
+      return 1 - ((n & 0x7fffffff) / 1073741824);
+    };
+    const sm = t => t * t * (3 - 2 * t);
+    const vn = (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y);
+      const u = sm(x - xi), v = sm(y - yi);
+      const a = hs(xi, yi), b = hs(xi + 1, yi), c = hs(xi, yi + 1), d = hs(xi + 1, yi + 1);
+      const ab = a + (b - a) * u, cd = c + (d - c) * u;
+      return ab + (cd - ab) * v;
+    };
+    const fbm = (x, y, o) => { let s = 0, a = .5, f = 1; for (let i = 0; i < o; i++) { s += a * vn(x * f, y * f); a *= .5; f *= 2.02; } return s; };
+    const rdg = (x, y, o) => { let s = 0, a = .55, f = 1; for (let i = 0; i < o; i++) { const n = 1 - Math.abs(vn(x * f, y * f)); s += a * n * n; a *= .5; f *= 2.03; } return s; };
+
+    function sample(x, z, out) {
+      const rolling = fbm(x * .09, z * .09, 4) * .75;
+      let m = fbm(x * .025 + 17, z * .065 + 5, 2) * .5 + .5;
+      m = Math.max(0, Math.min(1, (m - .46) / .30));
+      m = m * m * (3 - 2 * m);
+      let y = rolling + m * rdg(x * .13 + 3, z * .13 + 9, 5) * 3.8;
+      const wob = fbm(x * .05 + 61, z * .05 + 23, 2);
+      const rv = Math.abs(fbm(x * .030 + 41, z * .016 + 77, 2) + wob * .20);
+      let river = 0;
+      if (rv < .030) { river = (1 - rv / .030) * (1 - .55 * m); y -= river * 1.05; }
+      out[0] = Math.min(y, 3.6); out[1] = river;
+    }
+
+    // relief is fixed in world space, so each row is computed once and reused
+    const cache = new Map(), tmp = [0, 0];
+    function rowData(k) {
+      let e = cache.get(k);
+      if (e) return e;
+      const yv = new Float64Array(COLS + 1), rvv = new Float64Array(COLS + 1), z = k * DZ;
+      for (let c = 0; c <= COLS; c++) {
+        sample((c - COLS / 2) * COL_W, z, tmp);
+        yv[c] = tmp[0]; rvv[c] = tmp[1];
+      }
+      e = { y: yv, r: rvv };
+      cache.set(k, e);
+      if (cache.size > ROWS + 24) cache.delete(cache.keys().next().value);
+      return e;
+    }
+
+    function resize() {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      w = cv.clientWidth || 1; h = cv.clientHeight || 1;
+      cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      horizon = h * .30;
+      foc = Math.min(h * .72, w * 1.1);
+      const small = w < 600, nc = small ? 48 : 72, nr = small ? 40 : 52;
+      if (nc !== COLS || nr !== ROWS) { COLS = nc; ROWS = nr; COL_W = small ? .62 : .48; cache.clear(); }
+    }
+
+    function draw(ms) {
+      const T = ms * .001 * SPEED;
+      ctx.clearRect(0, 0, w, h);
+      const k0 = Math.ceil((T + Z_NEAR) / DZ), rows = [];
+      for (let r = 0; r <= ROWS; r++) {
+        const k = k0 + r, z = k * DZ - T, d = rowData(k), s = foc / z;
+        const p = new Float64Array((COLS + 1) * 2);
+        for (let c = 0; c <= COLS; c++) {
+          p[c * 2] = w / 2 + (c - COLS / 2) * COL_W * s;
+          p[c * 2 + 1] = horizon + (CAM - d.y[c]) * s;
+        }
+        const fade = Math.max(0, 1 - (z - Z_NEAR) / (ROWS * DZ));
+        rows.push({ p: p, y: d.y, r: d.r, a: Math.pow(fade, 1.6), major: k % 4 === 0 });
+      }
+
+      ctx.lineWidth = 1;
+      for (const g of rows) {                                  // contours
+        const a = g.a * (g.major ? .60 : .28);
+        if (a < .006) continue;
+        ctx.strokeStyle = 'rgba(104,146,196,' + a.toFixed(3) + ')';
+        ctx.beginPath();
+        for (let c = 0; c <= COLS; c++) c ? ctx.lineTo(g.p[c * 2], g.p[c * 2 + 1]) : ctx.moveTo(g.p[0], g.p[1]);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = 'rgba(104,146,196,0.12)';              // graticule
+      ctx.beginPath();
+      for (let c = 0; c <= COLS; c += 4)
+        for (let r = 0; r <= ROWS; r++)
+          r ? ctx.lineTo(rows[r].p[c * 2], rows[r].p[c * 2 + 1]) : ctx.moveTo(rows[0].p[c * 2], rows[0].p[c * 2 + 1]);
+      ctx.stroke();
+
+      const link = (lists, pick, tol, style, lw) => {
+        ctx.strokeStyle = style; ctx.lineWidth = lw;
+        ctx.beginPath();
+        for (let i = 0; i < lists.length - 1; i++) {
+          for (const j of lists[i]) {
+            let best = -1, bd = 1e9;
+            for (const j2 of lists[i + 1]) { const dd = Math.abs(j2 - j); if (dd < bd) { bd = dd; best = j2; } }
+            if (best >= 0 && bd <= tol) { const A = pick(i, j), B = pick(i + 1, best); ctx.moveTo(A[0], A[1]); ctx.lineTo(B[0], B[1]); }
+          }
+        }
+        ctx.stroke();
+      };
+
+      const gc = ctx.createLinearGradient(0, horizon, 0, h);   // ridge crests
+      gc.addColorStop(0, 'rgba(184,212,248,0.10)');
+      gc.addColorStop(.4, 'rgba(184,212,248,0.52)');
+      gc.addColorStop(1, 'rgba(184,212,248,0.66)');
+      const crest = [];
+      for (let c = 0; c <= COLS; c++) {
+        const arr = [];
+        for (let r = 1; r < ROWS; r++) {
+          const y = rows[r].y[c];
+          if (y > 1.25 && y >= rows[r - 1].y[c] && y >= rows[r + 1].y[c]) arr.push(r);
+        }
+        crest.push(arr);
+      }
+      link(crest, (c, r) => [rows[r].p[c * 2], rows[r].p[c * 2 + 1]], 2, gc, 1.6);
+
+      const gr = ctx.createLinearGradient(0, horizon, 0, h);   // watercourses
+      gr.addColorStop(0, 'rgba(92,190,255,0.12)');
+      gr.addColorStop(.4, 'rgba(92,190,255,0.60)');
+      gr.addColorStop(1, 'rgba(92,190,255,0.78)');
+      const chan = [];
+      for (let r = 0; r <= ROWS; r++) {
+        const arr = [];
+        for (let c = 1; c < COLS; c++) {
+          const v = rows[r].r[c];
+          if (v > .25 && v >= rows[r].r[c - 1] && v >= rows[r].r[c + 1]) arr.push(c);
+        }
+        chan.push(arr);
+      }
+      link(chan, (r, c) => [rows[r].p[c * 2], rows[r].p[c * 2 + 1]], 3, gr, 1.6);
+      ctx.lineWidth = 1;
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+    // Windows commonly reports reduced-motion; a slow ambient drift stays, just slower.
+    const rate = reduced ? 0.45 : 1;
+    const t0 = performance.now();
+    (function loop() {
+      if (!cv.isConnected) return;
+      if (cv.clientWidth !== w || cv.clientHeight !== h) resize();
+      draw((performance.now() - t0) * rate);
+      requestAnimationFrame(loop);
+    })();
+  })();
+
+  // ---- the gate waits for the user; it does not time out ----
+  if (window.matchMedia && matchMedia('(pointer: coarse)').matches) {
+    const p = prompt.querySelector('span');
+    if (p) p.textContent = 'TAP TO CONTINUE';
+  }
+  let gone = false;
+  const onKey = e => {
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return;
+    dismiss();
+  };
+  const dismiss = () => {
+    if (gone) return;
+    gone = true;
+    document.removeEventListener('keydown', onKey);
+    b.removeEventListener('pointerdown', dismiss);
+    document.body.style.overflow = '';
+    b.classList.add('done');
+    setTimeout(() => { b.remove(); window.scrollTo(0, 0); }, 360);
+  };
+  document.body.style.overflow = 'hidden';
+  document.addEventListener('keydown', onKey);
+  b.addEventListener('pointerdown', dismiss);
+  b.focus({ preventScroll: true });
+})();
 })();
 
 </script>

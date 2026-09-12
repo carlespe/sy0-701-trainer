@@ -408,6 +408,35 @@ pre.code{background:var(--panel);border:1px solid var(--line);border-left:2px so
 .ivbar{display:flex;gap:9px;margin-top:24px;flex-wrap:wrap;align-items:center}
 .ivtally{font-family:var(--mono);font-size:12px;color:var(--ink3);margin-left:auto}
 
+/* ---------- lookup ---------- */
+.searchbox{max-width:720px;height:82vh}
+.searchbar{padding:14px 20px;border-bottom:1px solid var(--line);flex:none}
+.searchbar input{width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--ink);
+  padding:11px 13px;border-radius:var(--r);font-family:var(--sans);font-size:14.5px}
+.searchbar input::placeholder{color:var(--ink3)}
+.searchbar input:focus{border-color:var(--accent);outline:none}
+.sempty{padding:26px 2px;color:var(--ink3);font-size:14px;line-height:1.6}
+.sempty p{margin-bottom:16px}
+.scount{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink3);padding-bottom:10px;border-bottom:1px solid var(--line)}
+.sres{border-bottom:1px solid var(--line);padding:13px 0}
+.sreshead{display:flex;gap:12px;align-items:baseline;width:100%;text-align:left}
+.sreshead:hover .stopic{color:var(--ink)}
+.sreshead .so{font-family:var(--mono);font-size:11px;color:var(--accent);flex:none;width:34px}
+.sreshead .stopic{flex:1;font-size:14px;color:var(--ink2)}
+.sreshead .sid{font-family:var(--mono);font-size:10.5px;color:var(--ink3);flex:none}
+.ssnip{font-size:13.5px;color:var(--ink3);line-height:1.6;margin-top:7px;padding-left:46px}
+@media(max-width:560px){.ssnip{padding-left:0}}
+mark{background:rgba(76,141,255,.22);color:var(--ink);padding:0 2px;border-radius:2px}
+.sbody{display:none;padding:16px 0 4px 46px}
+.sres.open .sbody{display:block}
+.sres.open .ssnip{display:none}
+@media(max-width:560px){.sbody{padding-left:0}}
+.refpairs{margin-top:10px}
+.refpair{display:flex;gap:14px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13.5px}
+.refpair span{flex:1;color:var(--ink3)}
+.refpair b{color:var(--ok);font-weight:500;font-family:var(--mono);font-size:12.5px;text-align:right}
+
 /* ---------- results ---------- */
 .res{max-width:860px;margin:0 auto;padding:44px 22px 120px}
 .scorerow{display:flex;align-items:flex-end;gap:28px;flex-wrap:wrap;padding-bottom:26px;border-bottom:1px solid var(--line)}
@@ -653,13 +682,13 @@ function renderSetup() {
 
   el.querySelectorAll('[data-all]').forEach(b => b.onclick = () => {
     if (b.dataset.all === '1') allObjIds.forEach(o => S.sel.add(o)); else S.sel.clear();
-    drawDomains(); updateCount();
+    drawDomains(); drawModePanel(); updateCount();
   });
   el.querySelectorAll('[data-only]').forEach(b => b.onclick = () => {
     S.sel.clear();
     DOMAINS.find(d => d.id === b.dataset.only).objectives.forEach(o => S.sel.add(o.id));
     S.open = new Set([b.dataset.only]);
-    drawDomains(); updateCount();
+    drawDomains(); drawModePanel(); updateCount();
   });
   document.getElementById('fullToggle').onclick = () => {
     S.fullExam = !S.fullExam; renderSetup();
@@ -702,12 +731,12 @@ function drawDomains() {
     } else {
       S.open.has(d) ? S.open.delete(d) : S.open.add(d);
     }
-    drawDomains(); updateCount();
+    drawDomains(); drawModePanel(); updateCount();
   });
   host.querySelectorAll('[data-obj]').forEach(b => b.onclick = () => {
     const id = b.dataset.obj;
     S.sel.has(id) ? S.sel.delete(id) : S.sel.add(id);
-    drawDomains(); updateCount();
+    drawDomains(); drawModePanel(); updateCount();
   });
 }
 
@@ -1036,8 +1065,10 @@ function renderQuiz(keepScroll) {
   progWrap.classList.remove('hide');
   progBar.style.width = ((S.i + 1) / n * 100) + '%';
   topActions.innerHTML = `
-    <button class="tbtn" id="gridBtn">Questions</button>
+    ${S.fullExam ? '' : '<button class="tbtn" id="lookBtn">Look up</button>'}
+    <button class="tbtn" id="gridBtn" style="margin-left:8px">Questions</button>
     <button class="tbtn warnish" id="exitBtn" style="margin-left:8px">End session</button>`;
+  const lk = document.getElementById('lookBtn'); if (lk) lk.onclick = openSearch;
   document.getElementById('gridBtn').onclick = openGrid;
   document.getElementById('exitBtn').onclick = () => {
     const left = S.qs.filter(x => !answered(x)).length;
@@ -1119,6 +1150,136 @@ function pick(q, letter) {
 function go(i) {
   if (i < 0 || i >= S.qs.length) return;
   S.i = i; S.pick = null; renderQuiz(false);
+}
+
+/* ============ lookup ============ */
+const STOP = new Set(['the','a','an','of','to','is','are','in','on','for','and','or','what','which',
+  'how','why','does','do','it','that','this','with','be','can','you','my','i','me','when','between',
+  'vs','difference','explain','tell','about','use','used','using']);
+
+function terms(q) {
+  return (q.toLowerCase().match(/[a-z0-9][a-z0-9.+-]*/g) || [])
+    .filter(t => t.length > 1 && !STOP.has(t)).slice(0, 8);
+}
+function fields(q) {
+  if (q._f) return q._f;
+  const lo = s => (s || '').toLowerCase();
+  const key = lo((q.topic || '') + ' ' + q.objs.join(' ') + ' ' + q.objs.map(o => OBJNAME[o] || '').join(' '));
+  let ans, expl, body;
+  if (isMC(q)) {
+    ans = lo(q.answer);
+    expl = lo((q.why || []).join(' ') + ' ' + (q.wrong || []).map(w => w.t + ' ' + w.x).join(' '));
+    body = lo(q.stem.map(b => b.text || (b.items || []).join(' ')).join(' ') + ' ' + q.options.map(o => o.text).join(' '));
+  } else {
+    const iv = q.interactive, rows = ivRows(iv);
+    ans = lo(rows.map(r => r.c.join(' ')).join(' '));
+    expl = '';
+    body = lo((iv.instruction || '') + ' ' + rows.map(r => r.p).join(' ') + ' ' + (iv.bank || []).join(' '));
+  }
+  q._f = { key: key, ans: ans, expl: expl, body: body };
+  return q._f;
+}
+const countOf = (hay, t) => { let n = 0, i = 0; while ((i = hay.indexOf(t, i)) >= 0) { n++; i += t.length; } return n; };
+
+function lookup(query) {
+  const ts = terms(query);
+  if (!ts.length) return [];
+  const out = [];
+  for (const q of QS) {
+    const f = fields(q);
+    let total = 0, hit = 0;
+    for (const t of ts) {
+      const s = countOf(f.key, t) * 6 + countOf(f.ans, t) * 3 + countOf(f.expl, t) * 2 + countOf(f.body, t);
+      if (s) hit++;
+      total += s;
+    }
+    if (!hit) continue;
+    if (hit < ts.length) total *= 0.3 * (hit / ts.length);
+    out.push({ q: q, s: total, hit: hit });
+  }
+  out.sort((a, b) => b.hit - a.hit || b.s - a.s);
+  return out.slice(0, 14);
+}
+
+function mark(text, ts) {
+  let s = esc(text);
+  for (const t of ts) {
+    const re = new RegExp('(' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'gi');
+    s = s.replace(re, '<mark>$1</mark>');
+  }
+  return s;
+}
+function snippet(q, ts) {
+  const src = isMC(q) ? ((q.why || []).join(' ') || q.answer || '') : (q.interactive.instruction || '');
+  const lo = src.toLowerCase();
+  let at = -1;
+  for (const t of ts) { const i = lo.indexOf(t); if (i >= 0 && (at < 0 || i < at)) at = i; }
+  if (at < 0) at = 0;
+  const from = Math.max(0, at - 90), to = Math.min(src.length, from + 240);
+  return (from ? '\u2026' : '') + src.slice(from, to).trim() + (to < src.length ? '\u2026' : '');
+}
+function refBody(q) {
+  if (isMC(q)) {
+    return `<div class="ansline"><em>The answer:</em>${esc(q.answer)}</div>
+      ${(q.why || []).map(p => `<p>${esc(p)}</p>`).join('')}
+      ${(q.wrong && q.wrong.length) ? `<div class="whyhead">Why the others are wrong</div>
+        ${q.wrong.map(w => `<div class="wrongitem"><div class="h"><em>${w.l}.</em>${esc(w.t)}</div><p>${esc(w.x)}</p></div>`).join('')}` : ''}`;
+  }
+  const iv = q.interactive;
+  return `<p style="color:var(--ink2);font-size:14px">${esc(iv.instruction)}</p>
+    <div class="refpairs">${ivRows(iv).map(r =>
+      `<div class="refpair"><span>${esc(r.p)}</span><b>${esc(r.c.join(', '))}</b></div>`).join('')}</div>`;
+}
+
+function openSearch() {
+  overlay.innerHTML = `<div class="sheet" id="sheet"><div class="sheetbox searchbox">
+    <div class="sheethead"><h3>Look up</h3><div class="sp"></div>
+      <button class="tbtn" id="closeSheet">Close</button></div>
+    <div class="searchbar"><input type="text" id="qIn" autocomplete="off" spellcheck="false"
+      placeholder="Ask about a term, protocol, attack or control\u2026"></div>
+    <div class="sheetbody" id="qRes"></div></div></div>`;
+  const input = document.getElementById('qIn'), res = document.getElementById('qRes');
+  document.getElementById('closeSheet').onclick = closeSheet;
+  document.getElementById('sheet').onclick = e => { if (e.target.id === 'sheet') closeSheet(); };
+
+  const idle = `<div class="sempty">
+    <p>Search every explanation in the question bank &mdash; 270 questions across all five domains.</p>
+    <div class="quickrow">${['CRL vs OCSP', 'phishing', 'RAID', 'SLA', 'sideloading', 'salting']
+      .map(s => `<button class="chip" data-s="${esc(s)}">${esc(s)}</button>`).join('')}</div></div>`;
+  res.innerHTML = idle;
+
+  const run = () => {
+    const v = input.value.trim();
+    if (!v) { res.innerHTML = idle; wireChips(); return; }
+    const ts = terms(v), hits = lookup(v);
+    if (!hits.length) {
+      res.innerHTML = `<div class="sempty"><p>Nothing in the bank matches that. Try a single term &mdash; a protocol, an attack, or a control.</p></div>`;
+      return;
+    }
+    res.innerHTML = `<div class="scount">${hits.length} match${hits.length === 1 ? '' : 'es'}</div>` +
+      hits.map(r => `<div class="sres" data-id="${r.q.id}">
+        <button class="sreshead">
+          <span class="so">${r.q.objs.join(', ')}</span>
+          <span class="stopic">${esc(r.q.topic || OBJNAME[r.q.objs[0]] || '')}</span>
+          <span class="sid">${r.q.id}</span>
+        </button>
+        <div class="ssnip">${mark(snippet(r.q, ts), ts)}</div>
+        <div class="sbody"></div></div>`).join('');
+    res.querySelectorAll('.sreshead').forEach(b => b.onclick = () => {
+      const item = b.closest('.sres');
+      const q = QS.find(x => x.id === item.dataset.id);
+      const body = item.querySelector('.sbody');
+      if (!item.classList.contains('open') && !body.innerHTML) body.innerHTML = refBody(q);
+      item.classList.toggle('open');
+    });
+  };
+  const wireChips = () => res.querySelectorAll('[data-s]').forEach(c =>
+    c.onclick = () => { input.value = c.dataset.s; run(); input.focus(); });
+  wireChips();
+
+  let t = 0;
+  input.oninput = () => { clearTimeout(t); t = setTimeout(run, 120); };
+  input.focus();
 }
 
 /* ============ navigator ============ */
@@ -1354,6 +1515,7 @@ document.addEventListener('keydown', e => {
   else if (e.key === 'ArrowLeft') { go(S.i - 1); e.preventDefault(); }
   else if (e.key.toLowerCase() === 'f') { S.flags.has(q.id) ? S.flags.delete(q.id) : S.flags.add(q.id); renderQuiz(); }
   else if (e.key.toLowerCase() === 'g') { openGrid(); e.preventDefault(); }
+  else if (e.key === '/' && !S.fullExam) { openSearch(); e.preventDefault(); }
   else if (e.key === 'Enter') { S.i === S.qs.length - 1 ? finish(false) : go(S.i + 1); }
   else if (isMC(q) && !S.shown.has(q.id)) {
     const k = e.key.toUpperCase();
